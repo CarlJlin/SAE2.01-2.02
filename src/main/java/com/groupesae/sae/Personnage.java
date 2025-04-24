@@ -1,3 +1,5 @@
+package com.groupesae.sae;
+
 public abstract class Personnage {
 
     protected int x;

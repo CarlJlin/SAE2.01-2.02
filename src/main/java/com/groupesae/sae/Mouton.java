@@ -1,3 +1,5 @@
+package com.groupesae.sae;
+
 public class Mouton extends Personnage{
 
     @Override

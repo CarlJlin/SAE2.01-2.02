@@ -1,3 +1,5 @@
+package com.groupesae.sae;
+
 public class Loup extends Personnage{
 
     @Override

@@ -1,9 +1,7 @@
 package com.groupesae.sae;
-
-
 import java.util.Scanner;
 
-public class Grille{
+public class Grille {
 
     private int[][] grille;
     private int x;
@@ -14,17 +12,17 @@ public class Grille{
     private static final int MARGUERITE = 1;
     private static final int CACTUS = 2;
 
-    public Grille(int x, int y){
-        this.x=x;
-        this.y=y;
-        this.grille=new int[this.x][this.y];
+    public Grille(int x, int y) {
+        this.x = x;
+        this.y = y;
+        this.grille = new int[this.y][this.x];
         genererGrille();
-        chooseExit(10,9);
+        chooseExit();
         chooseElements();
     }
 
-    public Grille(){
-        this(10,10);
+    public Grille() {
+        this(10, 10);
     }
 
     public int getX() {
@@ -40,9 +38,9 @@ public class Grille{
     }
 
     public void genererGrille() {
-        for (int i = 0; i < this.x; i++) {
-            for (int j = 0; j < this.y; j++) {
-                if (i == 0 || i == this.x - 1 || j == 0 || j == this.y - 1) {
+        for (int i = 0; i < this.y; i++) {
+            for (int j = 0; j < this.x; j++) {
+                if (i == 0 || i == this.y - 1 || j == 0 || j == this.x - 1) {
                     this.grille[i][j] = ROCHER;
                 } else {
                     this.grille[i][j] = HERBE;
@@ -51,38 +49,87 @@ public class Grille{
         }
     }
 
-    public void chooseExit(int x, int y) {
-        if (x >= 0 && x <= this.x && y >= 0 && y <= this.y) {
-            this.grille[x-1][y-1] = HERBE;
+    public void chooseExit() {
+        Scanner scanner = new Scanner(System.in);
+        int x = -1, y = -1;
+        boolean valide = false;
+        while (!valide) {
+            System.out.println("Choisissez les coordonnées de la sortie (sur le bord, hors coins) :");
+            System.out.print("x (1 à " + this.x + "): ");
+            x = scanner.nextInt();
+            System.out.print("y (1 à " + this.y + "): ");
+            y = scanner.nextInt();
+
+            boolean surBord = (x == 1 || x == this.x || y == 1 || y == this.y);
+            boolean pasCoin = !((x == 1 || x == this.x) && (y == 1 || y == this.y));
+            boolean dansGrille = (x >= 1 && x <= this.x && y >= 1 && y <= this.y);
+
+            if (dansGrille && surBord && pasCoin) {
+                valide = true;
+            } else {
+                System.out.println("Coordonnées invalides. La sortie doit être sur un bord mais pas dans un coin.");
+            }
         }
+        this.grille[y - 1][x - 1] = HERBE;
     }
 
     public void chooseElements() {
         Scanner scanner = new Scanner(System.in);
-        int x = 0;
-        int y = 0;
-        while (x == 0) {
-            System.out.println("Veuillez choisir les coordonnées x de l'element :");
-            x = scanner.nextInt();
-            if (x < 0 || x >= this.x) {
-                System.out.println("Mauvaises coordonnées veuillez réessayer");
+        System.out.println("Pour chaque case intérieure, entrez l'élément à placer :");
+        System.out.println("0 = Herbe, 1 = Marguerite, 2 = Cactus, 3 = Rocher, -1 = Quitter");
+        for (int i = 1; i < this.y - 1; i++) {
+            for (int j = 1; j < this.x - 1; j++) {
+                int choix;
+                while (true) {
+                    System.out.print("Case (" + (j + 1) + "," + (i + 1) + ") : ");
+                    choix = scanner.nextInt();
+                    if (choix == -1) {
+                        return;
+                    }
+                    if (choix >= 0 && choix <= 3) {
+                        break;
+                    }
+                    System.out.println("Choix invalide, recommencez.");
+                }
+                switch (choix){
+                    case 0 :
+                        grille[i][j] = HERBE;
+                        break;
+                    case 1 :
+                        grille[i][j] = MARGUERITE;
+                        break;
+                    case 2 :
+                        grille[i][j] = CACTUS;
+                        break;
+                    case 3:
+                        grille[i][j] = ROCHER;
+                        break;
+                }
             }
-        }
-        while (y == 0) {
-            System.out.println("Veuillez choisir les coordonnées y de l'element :");
-            y = scanner.nextInt();
-            if (y < 0 || y >= this.y) {
-                System.out.println("Mauvaises coordonnées veuillez réessayer");
-            }
-        }
-        int choix = -10;
-        while (choix < 0 || choix > 3) {
-            System.out.println("Choisissez un élément :\n1.Herbe\n2. Marguerite\n3. Cactus");
-            choix = scanner.nextInt();
-            if (choix < 0 || choix > 3) {
-                System.out.println("Mauvais choix veuillez réessayer");
-            }
-        }
-            this.grille[x - 1][y - 1] = choix;
         }
     }
+
+    public void afficherGrille() {
+        // Ligne supérieure
+        System.out.print("+");
+        for (int j = 0; j < x; j++) {
+            System.out.print("---+");
+        }
+        System.out.println();
+
+        for (int i = 0; i < y; i++) {
+            System.out.print("|");
+            for (int j = 0; j < x; j++) {
+                System.out.printf("%3d|", grille[i][j]);
+            }
+            System.out.println();
+
+            // Ligne de séparation
+            System.out.print("+");
+            for (int j = 0; j < x; j++) {
+                System.out.print("---+");
+            }
+            System.out.println();
+        }
+    }
+}
