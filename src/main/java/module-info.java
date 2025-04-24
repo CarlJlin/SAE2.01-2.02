@@ -10,6 +10,7 @@ module com.groupesae.sae {
     requires org.kordamp.bootstrapfx.core;
     requires eu.hansolo.tilesfx;
     requires com.almasb.fxgl.all;
+    requires java.compiler;
 
     opens com.groupesae.sae to javafx.fxml;
     exports com.groupesae.sae;
