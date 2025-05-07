@@ -107,6 +107,7 @@ public class Grille {
                 }
             }
         }
+
     }
 
     public void afficherGrille() {
