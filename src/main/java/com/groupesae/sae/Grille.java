@@ -3,14 +3,17 @@ import java.util.Scanner;
 
 public class Grille {
 
-    private int[][] grille;
-    private int x;
-    private int y;
+    protected int[][] grille;
+    protected int x;
+    protected int y;
 
-    private static final int ROCHER = -1;
-    private static final int HERBE = 0;
-    private static final int MARGUERITE = 1;
-    private static final int CACTUS = 2;
+    protected static final int ROCHER = -1;
+    protected static final int HERBE = 0;
+    protected static final int MARGUERITE = 1;
+    protected static final int CACTUS = 2;
+
+    protected static final int MOUTON = 8;
+    protected static final int LOUP = 9;
 
     public Grille(int x, int y) {
         this.x = x;
@@ -23,6 +26,10 @@ public class Grille {
 
     public Grille() {
         this(10, 10);
+    }
+
+    public int[][] getGrille() {
+        return this.grille;
     }
 
     public int getX() {
@@ -77,6 +84,7 @@ public class Grille {
         Scanner scanner = new Scanner(System.in);
         System.out.println("Pour chaque case intérieure, entrez l'élément à placer :");
         System.out.println("0 = Herbe, 1 = Marguerite, 2 = Cactus, 3 = Rocher, -1 = Quitter");
+        placementElements:
         for (int i = 1; i < this.y - 1; i++) {
             for (int j = 1; j < this.x - 1; j++) {
                 int choix;
@@ -84,7 +92,7 @@ public class Grille {
                     System.out.print("Case (" + (j + 1) + "," + (i + 1) + ") : ");
                     choix = scanner.nextInt();
                     if (choix == -1) {
-                        return;
+                        break placementElements;
                     }
                     if (choix >= 0 && choix <= 3) {
                         break;
@@ -107,7 +115,49 @@ public class Grille {
                 }
             }
         }
-
+        System.out.println("Quelle coordonnées du mouton ?");
+        afficherGrille();
+        System.out.println("x (1 à " + this.x + "): ");
+        int x = scanner.nextInt();
+        System.out.println("y (1 à " + this.y + "): ");
+        int y = scanner.nextInt();
+        while (x < 1 || x > this.x || y < 1 || y > this.y) {
+            System.out.println("Coordonnées invalides. Veuillez entrer des coordonnées valides.");
+            System.out.print("x (1 à " + this.x + "): ");
+            x = scanner.nextInt();
+            System.out.print("y (1 à " + this.y + "): ");
+            y = scanner.nextInt();
+        }
+        while (grille[y - 1][x - 1] == ROCHER) {
+            System.out.println("Coordonnées invalides. Veuillez entrer des coordonnées valides.");
+            System.out.print("x (1 à " + this.x + "): ");
+            x = scanner.nextInt();
+            System.out.print("y (1 à " + this.y + "): ");
+            y = scanner.nextInt();
+        }
+        grille[y - 1][x - 1] = MOUTON;
+        System.out.println("Quelle coordonnées du loup ?");
+        afficherGrille();
+        System.out.println("x (1 à " + this.x + "): ");
+        x = scanner.nextInt();
+        System.out.println("y (1 à " + this.y + "): ");
+        y = scanner.nextInt();
+        while (x < 1 || x > this.x || y < 1 || y > this.y) {
+            System.out.println("Coordonnées invalides. Veuillez entrer des coordonnées valides.");
+            System.out.print("x (1 à " + this.x + "): ");
+            x = scanner.nextInt();
+            System.out.print("y (1 à " + this.y + "): ");
+            y = scanner.nextInt();
+        }
+        while (grille[y - 1][x - 1] == ROCHER || grille[y - 1][x - 1] == MOUTON) {
+            System.out.println("Coordonnées invalides. Veuillez entrer des coordonnées valides.");
+            System.out.print("x (1 à " + this.x + "): ");
+            x = scanner.nextInt();
+            System.out.print("y (1 à " + this.y + "): ");
+            y = scanner.nextInt();
+        }
+        grille[y - 1][x - 1] = LOUP;
+        System.out.println("Grille initialisée avec succès !");
     }
 
     public void afficherGrille() {
