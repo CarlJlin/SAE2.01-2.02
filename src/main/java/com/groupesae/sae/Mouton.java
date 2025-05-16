@@ -2,11 +2,16 @@ package com.groupesae.sae;
 
 public class Mouton extends Personnage{
 
+
+    public Mouton(int x, int y) {
+        this.x = x;
+        this.y = y;
+        this.force = 2;
+    }
+
     @Override
     public void deplacer(Grille grille, String direction){
-        // Vérifier si le mouvement est valide
         if (isDeplacementValide(x, y, direction)) {
-            // Mettre à jour la position du mouton
             switch (direction) {
                 case "haut":
                     x-=this.force;
@@ -22,7 +27,7 @@ public class Mouton extends Personnage{
                     break;
             }
         } else {
-            System.out.println("Déplacement invalide !");
+            System.out.println("DÃ©placement invalide !");
         }
         return;
     }
@@ -45,20 +50,18 @@ public class Mouton extends Personnage{
                 newX++;
                 break;
             default:
-                return false; // Direction invalide
+                return false;
         }
 
-        // Vérifier si la nouvelle position est dans les limites de la grille
         if (newX < 0 || newX >= this.x || newY < 0 || newY >= this.y) {
-            return false; // Déplacement en dehors de la grille
+            return false;
         }
 
-        // Vérifier si la nouvelle position est un rocher
         if (this.grille[newY][newX] == ROCHER) {
-            return false; // Déplacement sur un rocher
+            return false;
         }
 
-        return true; // Déplacement valide
+        return true;
     }
 
 
