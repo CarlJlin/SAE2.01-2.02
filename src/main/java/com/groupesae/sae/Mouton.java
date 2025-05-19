@@ -1,7 +1,6 @@
 package com.groupesae.sae;
 
-public class Mouton extends Personnage{
-
+public class Mouton extends Personnage {
 
     public Mouton(int x, int y) {
         this.x = x;
@@ -9,60 +8,62 @@ public class Mouton extends Personnage{
         this.force = 2;
     }
 
+    public Mouton() {
+        this.force = 2;
+    }
+
     @Override
-    public void deplacer(Grille grille, String direction){
-        if (isDeplacementValide(x, y, direction)) {
+    public void deplacer(Grille grille, String direction) {
+        int currentX = this.x;
+        int currentY = this.y;
+
+        grille.getGrille()[currentY][currentX] = Grille.HERBE;
+
+        for (int i = 0; i < this.force; i++) {
+            int nextX = currentX;
+            int nextY = currentY;
+
             switch (direction) {
                 case "haut":
-                    x-=this.force;
-                    break;
+                    if (grille.getElement(currentY - 1, currentX) == Grille.ROCHER) {
+                        break;
+                    } else {
+                        nextY--;
+                    }
+                    nextY--;
                 case "bas":
-                    x+=this.force;
-                    break;
+                    if (grille.getElement(currentY + 1, currentX) == Grille.ROCHER) {
+                        break;
+                    } else {
+                        nextY++;
+                    }
                 case "gauche":
-                    y-=this.force;
-                    break;
+                    if (grille.getElement(currentY, currentX-1) == Grille.ROCHER) {
+                        break;
+                    } else {
+                        nextX--;
+                    }
                 case "droite":
-                    y+=this.force;
-                    break;
+                    if (grille.getElement(currentY, currentX+1) == Grille.ROCHER) {
+                        break;
+                    } else {
+                        nextX++;
+                    }
+                default:
+                    grille.getGrille()[this.y][this.x] = Grille.MOUTON;
+                    return;
             }
-        } else {
-            System.out.println("DÃ©placement invalide !");
+
+            if (nextX >= grille.getX() || nextY < 0 || nextY >= grille.getY()) {
+                break;
+            }
+
+            currentX = nextX;
+            currentY = nextY;
         }
-        return;
+
+        this.x = currentX;
+        this.y = currentY;
+        grille.getGrille()[this.y][this.x] = Grille.MOUTON;
     }
-    @Override
-    public boolean isDeplacementValide(int x, int y, String direction){
-        int newX = x;
-        int newY = y;
-
-        switch (direction) {
-            case "haut":
-                newY--;
-                break;
-            case "bas":
-                newY++;
-                break;
-            case "gauche":
-                newX--;
-                break;
-            case "droite":
-                newX++;
-                break;
-            default:
-                return false;
-        }
-
-        if (newX < 0 || newX >= this.x || newY < 0 || newY >= this.y) {
-            return false;
-        }
-
-        if (this.grille[newY][newX] == ROCHER) {
-            return false;
-        }
-
-        return true;
-    }
-
-
 }
