@@ -148,7 +148,7 @@ public class GamePlayScreen {
         contentBox.setAlignment(Pos.CENTER);
         root.setCenter(contentBox);
 
-        scene = new Scene(root, 1024, 768);
+        scene = new Scene(root, 800, 600);
 
         upButton.setOnAction(e -> {
             deplacerAnimal(0, -1);
@@ -298,8 +298,8 @@ public class GamePlayScreen {
     }
 
     private int calculateCellSize() {
-        int availableWidth = 800;
-        int availableHeight = 600;
+        int availableWidth = 600;
+        int availableHeight = 400;
 
         return Math.min(CELL_MAX_SIZE, Math.min(availableWidth / grille.getX(), availableHeight / grille.getY()));
     }
