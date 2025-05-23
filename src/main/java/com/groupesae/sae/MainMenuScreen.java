@@ -2,48 +2,78 @@ package com.groupesae.sae;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
-import javafx.scene.text.Text;
-import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
 
-public class MainMenuScreen extends BorderPane {
+public class MainMenuScreen {
 
-    private App app;
+    private Button playButton;
+    private Button exitButton;
+    private Stage primaryStage;
 
-    public MainMenuScreen(App app) {
-        this.app = app;
+    public MainMenuScreen(Stage primaryStage) {
+        this.primaryStage = primaryStage;
 
-        Text title = new Text("Jeu du Loup et du Mouton");
-        title.setFont(new Font("Arial Bold", 36));
-        title.setTextAlignment(TextAlignment.CENTER);
+        playButton = new Button("Jouer");
+        playButton.setPrefSize(150, 50);
 
-        Button playButton = new Button("JOUER");
-        playButton.setPrefSize(200, 60);
-        playButton.getStyleClass().add("menu-button");
-        playButton.setOnAction(e -> app.showGameScreen());
+        exitButton = new Button("Quitter");
+        exitButton.setPrefSize(120, 40);
 
-        VBox centerBox = new VBox(40);
+        setupButtonActions();
+    }
+
+    private void setupButtonActions() {
+        playButton.setOnAction(event -> {
+            GridCustomizationScreen gridCustomizationScreen = new GridCustomizationScreen(primaryStage);
+            primaryStage.setScene(gridCustomizationScreen.getScene());
+        });
+
+        exitButton.setOnAction(event -> {
+            System.exit(0);
+        });
+    }
+
+    public Button getPlayButton() {
+        return playButton;
+    }
+
+    public Button getExitButton() {
+        return exitButton;
+    }
+
+    public Scene getScene() {
+        BorderPane root = new BorderPane();
+        root.setPadding(new Insets(20));
+
+        VBox centerBox = new VBox(30);
         centerBox.setAlignment(Pos.CENTER);
-        centerBox.getChildren().addAll(title, playButton);
+        Label titleLabel = new Label("Mange moi si tu peux !");
+        titleLabel.setFont(new Font(28));
+        centerBox.getChildren().addAll(titleLabel, playButton);
+        root.setCenter(centerBox);
 
-        Button optionsButton = new Button("Options");
-        optionsButton.setPrefSize(120, 40);
-        optionsButton.setOnAction(e -> app.showOptionsScreen());
+        HBox bottomBox = new HBox();
+        bottomBox.setAlignment(Pos.BOTTOM_CENTER);
+        bottomBox.setPadding(new Insets(20, 0, 20, 0));
 
-        Button quitButton = new Button("Quitter");
-        quitButton.setPrefSize(120, 40);
-        quitButton.setOnAction(e -> app.exit());
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        HBox bottomRightBox = new HBox(10);
-        bottomRightBox.setAlignment(Pos.BOTTOM_RIGHT);
-        bottomRightBox.setPadding(new Insets(20));
-        bottomRightBox.getChildren().addAll(optionsButton, quitButton);
+        bottomBox.getChildren().addAll( spacer, exitButton);
+        root.setBottom(bottomBox);
 
-        setCenter(centerBox);
-        setBottom(bottomRightBox);
+        playButton.setStyle("-fx-font-size: 18px;");
+        exitButton.setStyle("-fx-font-size: 14px;");
+
+        return new Scene(root, 800, 600);
     }
 }

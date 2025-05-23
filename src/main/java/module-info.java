@@ -11,6 +11,7 @@ module com.groupesae.sae {
     requires eu.hansolo.tilesfx;
     requires com.almasb.fxgl.all;
     requires java.compiler;
+    requires java.desktop;
 
     opens com.groupesae.sae to javafx.fxml;
     exports com.groupesae.sae;

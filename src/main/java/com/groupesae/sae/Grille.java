@@ -15,17 +15,25 @@ public class Grille {
     protected static final int MOUTON = 8;
     protected static final int LOUP = 9;
 
-    public Grille(int x, int y) {
+    public Grille(int x, int y, boolean graphique) {
+        if (!graphique){
         this.x = x;
         this.y = y;
         this.grille = new int[this.y][this.x];
         genererGrille();
         chooseExit();
         chooseElements();
+        } else {
+            this.x = x;
+            this.y = y;
+            this.grille = new int[this.y][this.x];
+            genererGrille();
+        }
+
     }
 
     public Grille() {
-        this(10, 10);
+        this(10, 10, false);
     }
 
     public int[][] getGrille() {
@@ -161,7 +169,6 @@ public class Grille {
     }
 
     public void afficherGrille() {
-        // Ligne supérieure
         System.out.print("+");
         for (int j = 0; j < x; j++) {
             System.out.print("---+");
@@ -175,12 +182,196 @@ public class Grille {
             }
             System.out.println();
 
-            // Ligne de séparation
             System.out.print("+");
             for (int j = 0; j < x; j++) {
                 System.out.print("---+");
             }
             System.out.println();
         }
+    }
+
+    public void jouer() {
+        Scanner scanner = new Scanner(System.in);
+        boolean partieTerminee = false;
+
+        int positionMoutonX = -1, positionMoutonY = -1;
+        int positionLoupX = -1, positionLoupY = -1;
+
+        for (int i = 0; i < getY(); i++) {
+            for (int j = 0; j < getX(); j++) {
+                if (getElement(i, j) == MOUTON) {
+                    positionMoutonY = i;
+                    positionMoutonX = j;
+                } else if (getElement(i, j) == LOUP) {
+                    positionLoupY = i;
+                    positionLoupX = j;
+                }
+            }
+        }
+
+        int forceMouton = 2;
+        int forceLoup = 3;
+
+        int elementSousMouton = HERBE;
+        int elementSousLoup = HERBE;
+        boolean premierTourMouton = true;
+        boolean premierTourLoup = true;
+
+        System.out.println("Bienvenue dans le jeu du mouton et du loup !");
+        System.out.println("Le mouton (8) doit atteindre la sortie sans être mangé par le loup (9).");
+        System.out.println("Le mouton mange ce qu'il y a sur la case où il se déplace, et au prochain tour :");
+        System.out.println("- S'il a mangé de l'herbe (0) : déplacement de 2 cases");
+        System.out.println("- S'il a mangé une marguerite (1) : déplacement de 4 cases");
+        System.out.println("- S'il a mangé un cactus (2) : déplacement d'une seule case");
+
+        while (!partieTerminee) {
+            System.out.println("\nÉtat actuel de la grille :");
+            afficherGrille();
+
+            boolean mouvementMoutonValide = false;
+            while (!mouvementMoutonValide) {
+                System.out.println("Tour du mouton (vitesse: " + forceMouton + " cases)");
+                System.out.print("Entrez une direction (haut, bas, gauche, droite) : ");
+                String directionMouton = scanner.nextLine().toLowerCase();
+
+                int dx = 0, dy = 0;
+                switch (directionMouton) {
+                    case "haut": dy = -1; break;
+                    case "bas": dy = 1; break;
+                    case "gauche": dx = -1; break;
+                    case "droite": dx = 1; break;
+                    default:
+                        System.out.println("Direction invalide pour le mouton ! Réessayez.");
+                        continue;
+                }
+
+                int tempX = positionMoutonX, tempY = positionMoutonY;
+                int casesParcourues = 0;
+                for (int i = 0; i < forceMouton; i++) {
+                    int nextX = tempX + dx;
+                    int nextY = tempY + dy;
+                    if (nextX < 0 || nextX >= getX() || nextY < 0 || nextY >= getY()
+                            || getElement(nextY, nextX) == ROCHER) {
+                        break;
+                    }
+                    tempX = nextX;
+                    tempY = nextY;
+                    casesParcourues++;
+                }
+
+                if (casesParcourues > 0) {
+                    int typeCaseMangee = getElement(tempY, tempX);
+
+                    if (premierTourMouton) {
+                        grille[positionMoutonY][positionMoutonX] = HERBE;
+                        premierTourMouton = false;
+                    } else {
+                        grille[positionMoutonY][positionMoutonX] = elementSousMouton;
+                    }
+                    elementSousMouton = typeCaseMangee;
+
+                    grille[tempY][tempX] = MOUTON;
+                    positionMoutonX = tempX;
+                    positionMoutonY = tempY;
+
+                    mouvementMoutonValide = true;
+
+                    switch (typeCaseMangee) {
+                        case HERBE:
+                            System.out.println("Le mouton a mangé de l'herbe ! Au prochain tour, il se déplacera de 2 cases.");
+                            forceMouton = 2;
+                            break;
+                        case MARGUERITE:
+                            System.out.println("Le mouton a mangé une marguerite ! Au prochain tour, il se déplacera de 4 cases.");
+                            forceMouton = 4;
+                            break;
+                        case CACTUS:
+                            System.out.println("Le mouton a mangé un cactus ! Au prochain tour, il se déplacera d'une seule case.");
+                            forceMouton = 1;
+                            break;
+                    }
+
+                    if (positionMoutonX == 0 || positionMoutonX == getX() - 1 ||
+                            positionMoutonY == 0 || positionMoutonY == getY() - 1) {
+                        System.out.println("Le mouton a atteint la sortie ! VICTOIRE !");
+                        partieTerminee = true;
+                        break;
+                    }
+                } else {
+                    System.out.println("Mouvement invalide pour le mouton ! Réessayez.");
+                }
+            }
+
+            if (partieTerminee) {
+                break;
+            }
+
+            boolean mouvementLoupValide = false;
+            while (!mouvementLoupValide) {
+                System.out.println("Tour du loup (vitesse: " + forceLoup + " cases)");
+                System.out.print("Entrez une direction (haut, bas, gauche, droite) : ");
+                String directionLoup = scanner.nextLine().toLowerCase();
+
+                int dx = 0, dy = 0;
+                switch (directionLoup) {
+                    case "haut": dy = -1; break;
+                    case "bas": dy = 1; break;
+                    case "gauche": dx = -1; break;
+                    case "droite": dx = 1; break;
+                    default:
+                        System.out.println("Direction invalide pour le loup ! Réessayez.");
+                        continue;
+                }
+
+                int tempX = positionLoupX, tempY = positionLoupY;
+                int casesParcourues = 0;
+                boolean moutonAttrape = false;
+                for (int i = 0; i < forceLoup; i++) {
+                    int nextX = tempX + dx;
+                    int nextY = tempY + dy;
+                    if (nextX < 0 || nextX >= getX() || nextY < 0 || nextY >= getY()
+                            || getElement(nextY, nextX) == ROCHER) {
+                        break;
+                    }
+                    if (nextX == positionMoutonX && nextY == positionMoutonY) {
+                        moutonAttrape = true;
+                        tempX = nextX;
+                        tempY = nextY;
+                        casesParcourues++;
+                        break;
+                    }
+                    tempX = nextX;
+                    tempY = nextY;
+                    casesParcourues++;
+                }
+
+                if (casesParcourues > 0) {
+                    if (premierTourLoup) {
+                        grille[positionLoupY][positionLoupX] = HERBE;
+                        premierTourLoup = false;
+                    } else {
+                        grille[positionLoupY][positionLoupX] = elementSousLoup;
+                    }
+                    elementSousLoup = getElement(tempY, tempX);
+
+                    grille[tempY][tempX] = LOUP;
+                    positionLoupX = tempX;
+                    positionLoupY = tempY;
+
+                    mouvementLoupValide = true;
+
+                    if (moutonAttrape || (positionLoupX == positionMoutonX && positionLoupY == positionMoutonY)) {
+                        System.out.println("Le loup a attrapé le mouton ! DÉFAITE !");
+                        partieTerminee = true;
+                    }
+                } else {
+                    System.out.println("Mouvement invalide pour le loup ! Réessayez.");
+                }
+            }
+        }
+
+        System.out.println("\nÉtat final de la grille :");
+        afficherGrille();
+        System.out.println("Fin de la partie !");
     }
 }
