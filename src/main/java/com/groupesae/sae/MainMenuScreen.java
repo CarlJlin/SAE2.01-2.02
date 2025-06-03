@@ -21,6 +21,8 @@ public class MainMenuScreen {
 
     public MainMenuScreen(Stage primaryStage) {
         this.primaryStage = primaryStage;
+        primaryStage.setHeight(700);
+        primaryStage.setWidth(800);
 
         playButton = new Button("Jouer");
         playButton.setPrefSize(150, 50);
@@ -74,6 +76,6 @@ public class MainMenuScreen {
         playButton.setStyle("-fx-font-size: 18px;");
         exitButton.setStyle("-fx-font-size: 14px;");
 
-        return new Scene(root, 800, 600);
+        return new Scene(root, 800, 700);
     }
 }

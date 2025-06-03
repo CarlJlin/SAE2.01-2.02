@@ -18,7 +18,6 @@ import javafx.stage.Stage;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class GamePlayScreen {
     private static final int CELL_MAX_SIZE = 80;
@@ -28,6 +27,8 @@ public class GamePlayScreen {
     private Grille grille;
     private Map<Integer, Image> elementImages = new HashMap<>();
     private final int CELL_SIZE = 50;
+    private final int SORTIE = -5;
+
 
     private int positionMoutonX = -1, positionMoutonY = -1;
     private int positionLoupX = -1, positionLoupY = -1;
@@ -46,6 +47,8 @@ public class GamePlayScreen {
         this.grille = grille;
         this.width = grille.getX();
         this.height = grille.getY();
+        primaryStage.setWidth(1300);
+        primaryStage.setHeight(800);
         loadImages();
         findCharacters();
     }
@@ -77,6 +80,10 @@ public class GamePlayScreen {
         gc.setFill(Color.LIGHTGREEN);
         gc.fillRect(0, 0, CELL_SIZE, CELL_SIZE);
         elementImages.put(Grille.HERBE, canvas.snapshot(null, null));
+
+        gc.setFill(Color.LIGHTGREEN);
+        gc.fillRect(0, 0, CELL_SIZE, CELL_SIZE);
+        elementImages.put(SORTIE, canvas.snapshot(null, null));
 
         gc.setFill(Color.YELLOW);
         gc.fillRect(0, 0, CELL_SIZE, CELL_SIZE);
@@ -137,6 +144,8 @@ public class GamePlayScreen {
 
         menuButton.setOnAction(e -> {
             MainMenuScreen menu = new MainMenuScreen(primaryStage);
+            primaryStage.setWidth(800);
+            primaryStage.setHeight(600);
             primaryStage.setScene(menu.getScene());
         });
 
@@ -282,15 +291,17 @@ public class GamePlayScreen {
 
         alert.showAndWait().ifPresent(response -> {
             MainMenuScreen menu = new MainMenuScreen(primaryStage);
+            primaryStage.setWidth(800);
+            primaryStage.setHeight(600);
             primaryStage.setScene(menu.getScene());
         });
     }
 
     private void drawGrid() {
         GraphicsContext gc = gameCanvas.getGraphicsContext2D();
-
         gc.clearRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
 
+        // Fond noir pour toute la grille
         gc.setFill(Color.BLACK);
         gc.fillRect(0, 0, width * calculateCellSize(), height * calculateCellSize());
 
@@ -300,17 +311,41 @@ public class GamePlayScreen {
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
                 int element = grille.getElement(i, j);
-                Image img = elementImages.get(element);
+
+                // Vérifier si la case est sur un bord (sortie potentielle)
+                boolean estSurBord = (i == 0 || i == height - 1 || j == 0 || j == width - 1);
+                boolean estSortie = estSurBord && element != Grille.ROCHER && element != Grille.LOUP && element != Grille.MOUTON;
+
+                Image img;
+                if (estSortie) {
+                    // Utiliser l'image d'herbe pour la sortie
+                    img = elementImages.get(Grille.HERBE);
+                } else {
+                    img = elementImages.get(element);
+                }
+
                 if (img != null) {
                     gc.drawImage(img,
                             j * cellSize + spacing,
                             i * cellSize + spacing,
                             cellSize - 2 * spacing,
                             cellSize - 2 * spacing);
+
+                    // Optionnel : ajouter un indicateur visuel pour les sorties
+                    if (estSortie) {
+                        gc.setStroke(Color.BLUE);
+                        gc.setLineWidth(2);
+                        gc.strokeRect(
+                                j * cellSize + spacing,
+                                i * cellSize + spacing,
+                                cellSize - 2 * spacing,
+                                cellSize - 2 * spacing);
+                    }
                 }
             }
         }
     }
+
     private int calculateCellSize() {
         int availableWidth = 600;
         int availableHeight = 400;

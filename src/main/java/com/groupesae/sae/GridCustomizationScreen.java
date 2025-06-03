@@ -50,6 +50,8 @@ public class GridCustomizationScreen {
 
     public GridCustomizationScreen(Stage primaryStage) {
         this.primaryStage = primaryStage;
+        primaryStage.setHeight(700);
+        primaryStage.setWidth(800);
         loadImages();
     }
 
@@ -161,7 +163,7 @@ public class GridCustomizationScreen {
         VBox elementsPanel = createElementsPanel();
         root.setRight(elementsPanel);
 
-        scene = new Scene(root, primaryStage.getWidth(), primaryStage.getHeight());
+        scene = new Scene(root, 800, 700);
         return scene;
     }
 
