@@ -20,6 +20,7 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import static javafx.scene.layout.Region.USE_PREF_SIZE;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -54,13 +55,15 @@ public class GridCustomizationScreen {
 
     private void loadImages() {
         try {
-            elementImages.put(Grille.HERBE, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Herbe.png"))));
-            elementImages.put(Grille.MARGUERITE, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Marguerite.png"))));
-            elementImages.put(Grille.CACTUS, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Cactus.png"))));
-            elementImages.put(Grille.ROCHER, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Rocher.jpg"))));
-            elementImages.put(Grille.MOUTON, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Mouton.png"))));
-            elementImages.put(Grille.LOUP, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Loup.png"))));
-            elementImages.put(SORTIE, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Sortie.png"))));
+            // Utilisation de chemins d'accès au système de fichiers
+            String basePath = "src/main/resources/com/groupesae/sae/Elements/";
+            elementImages.put(Grille.HERBE, new Image(new File(basePath + "Herbe.png").toURI().toString()));
+            elementImages.put(Grille.MARGUERITE, new Image(new File(basePath + "Marguerite.png").toURI().toString()));
+            elementImages.put(Grille.CACTUS, new Image(new File(basePath + "Cactus.png").toURI().toString()));
+            elementImages.put(Grille.ROCHER, new Image(new File(basePath + "Rocher.jpg").toURI().toString()));
+            elementImages.put(Grille.MOUTON, new Image(new File(basePath + "Mouton.png").toURI().toString()));
+            elementImages.put(Grille.LOUP, new Image(new File(basePath + "Loup.png").toURI().toString()));
+            elementImages.put(SORTIE, new Image(new File(basePath + "Sortie.png").toURI().toString()));
         } catch (Exception e) {
             System.err.println("Erreur lors du chargement des images: " + e.getMessage());
             e.printStackTrace();

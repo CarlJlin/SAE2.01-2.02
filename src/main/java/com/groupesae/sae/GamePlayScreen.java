@@ -15,6 +15,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -51,15 +52,18 @@ public class GamePlayScreen {
 
     private void loadImages() {
         try {
-            elementImages.put(Grille.HERBE, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Herbe.png"))));
-            elementImages.put(Grille.MARGUERITE, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Marguerite.png"))));
-            elementImages.put(Grille.CACTUS, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Cactus.png"))));
-            elementImages.put(Grille.ROCHER, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Rocher.jpg"))));
-            elementImages.put(Grille.MOUTON, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Mouton.png"))));
-            elementImages.put(Grille.LOUP, new Image(Objects.requireNonNull(getClass().getResourceAsStream("/com/groupesae/sae/Elements/Loup.png"))));
+            // Utilisation de chemins d'accès au système de fichiers
+            String basePath = "src/main/resources/com/groupesae/sae/Elements/";
+            elementImages.put(Grille.HERBE, new Image(new File(basePath + "Herbe.png").toURI().toString()));
+            elementImages.put(Grille.MARGUERITE, new Image(new File(basePath + "Marguerite.png").toURI().toString()));
+            elementImages.put(Grille.CACTUS, new Image(new File(basePath + "Cactus.png").toURI().toString()));
+            elementImages.put(Grille.ROCHER, new Image(new File(basePath + "Rocher.jpg").toURI().toString()));
+            elementImages.put(Grille.MOUTON, new Image(new File(basePath + "Mouton.png").toURI().toString()));
+            elementImages.put(Grille.LOUP, new Image(new File(basePath + "Loup.png").toURI().toString()));
         } catch (Exception e) {
             System.err.println("Erreur lors du chargement des images: " + e.getMessage());
             e.printStackTrace();
+
             createFallbackImages();
         }
     }
@@ -284,19 +288,29 @@ public class GamePlayScreen {
 
     private void drawGrid() {
         GraphicsContext gc = gameCanvas.getGraphicsContext2D();
+
         gc.clearRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
+
+        gc.setFill(Color.BLACK);
+        gc.fillRect(0, 0, width * calculateCellSize(), height * calculateCellSize());
+
+        int cellSize = calculateCellSize();
+        int spacing = 1;
 
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
                 int element = grille.getElement(i, j);
                 Image img = elementImages.get(element);
                 if (img != null) {
-                    gc.drawImage(img, j*calculateCellSize(), i*calculateCellSize(), calculateCellSize(), calculateCellSize());
+                    gc.drawImage(img,
+                            j * cellSize + spacing,
+                            i * cellSize + spacing,
+                            cellSize - 2 * spacing,
+                            cellSize - 2 * spacing);
                 }
             }
         }
     }
-
     private int calculateCellSize() {
         int availableWidth = 600;
         int availableHeight = 400;
