@@ -4,6 +4,7 @@ import java.util.*;
 
 public class Dijkstra {
 
+
     static class Edge {
         String to;
         int weight;
