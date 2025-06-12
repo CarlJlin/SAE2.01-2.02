@@ -21,9 +21,6 @@ public class MainMenuScreen {
 
     public MainMenuScreen(Stage primaryStage) {
         this.primaryStage = primaryStage;
-        primaryStage.setHeight(700);
-        primaryStage.setWidth(800);
-
         playButton = new Button("Jouer");
         playButton.setPrefSize(150, 50);
 
@@ -35,8 +32,8 @@ public class MainMenuScreen {
 
     private void setupButtonActions() {
         playButton.setOnAction(event -> {
-            GridCustomizationScreen gridCustomizationScreen = new GridCustomizationScreen(primaryStage);
-            primaryStage.setScene(gridCustomizationScreen.getScene());
+            GameModeScreen gameModeScreen = new GameModeScreen(primaryStage);
+            primaryStage.setScene(gameModeScreen.getScene());
         });
 
         exitButton.setOnAction(event -> {
@@ -76,6 +73,6 @@ public class MainMenuScreen {
         playButton.setStyle("-fx-font-size: 18px;");
         exitButton.setStyle("-fx-font-size: 14px;");
 
-        return new Scene(root, 800, 700);
+        return new Scene(root, 1400, 800);
     }
 }

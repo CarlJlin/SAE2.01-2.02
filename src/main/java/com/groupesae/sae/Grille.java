@@ -1,5 +1,5 @@
 package com.groupesae.sae;
-import java.util.Scanner;
+import java.util.*;
 
 public class Grille {
 
@@ -14,6 +14,8 @@ public class Grille {
 
     protected static final int MOUTON = 8;
     protected static final int LOUP = 9;
+
+    protected boolean estGeneree = false;
 
     public Grille(int x, int y, boolean graphique) {
         if (!graphique){
@@ -373,5 +375,207 @@ public class Grille {
         System.out.println("\nÉtat final de la grille :");
         afficherGrille();
         System.out.println("Fin de la partie !");
+    }
+
+    public void genererLabyrinthe() {
+        // Remplir la grille avec des rochers
+        for (int i = 0; i < y; i++) {
+            for (int j = 0; j < x; j++) {
+                grille[i][j] = ROCHER;
+            }
+        }
+
+        // Initialisation pour l'algorithme de fusion aléatoire
+        int cellRows = (y - 1) / 2;
+        int cellCols = (x - 1) / 2;
+
+        // Créer un tableau de taille correcte pour éviter les dépassements d'indices
+        int totalCells = cellRows * cellCols;
+        int[] parent = new int[totalCells];
+        Arrays.fill(parent, -1);
+
+        List<int[]> murs = new ArrayList<>();
+
+        // Création des cellules et identification des murs
+        for (int i = 1; i < y - 1; i += 2) {
+            for (int j = 1; j < x - 1; j += 2) {
+                // Créer une cellule (passage)
+                grille[i][j] = HERBE;
+
+                // Identifier les murs voisins (droite et bas seulement)
+                if (j + 2 < x - 1) { // Mur à droite
+                    murs.add(new int[]{i, j + 1});
+                }
+                if (i + 2 < y - 1) { // Mur en bas
+                    murs.add(new int[]{i + 1, j});
+                }
+            }
+        }
+
+        // Mélanger les murs pour la sélection aléatoire
+        Collections.shuffle(murs);
+
+        // Fonction pour trouver la racine d'un ensemble
+        // (pour l'algorithme de fusion)
+        class DisjointSet {
+            int find(int[] parent, int x) {
+                if (parent[x] == -1) return x;
+                return parent[x] = find(parent, parent[x]); // Compression de chemin
+            }
+
+            void union(int[] parent, int x, int y) {
+                int rootX = find(parent, x);
+                int rootY = find(parent, y);
+                if (rootX != rootY) {
+                    parent[rootX] = rootY;
+                }
+            }
+        }
+
+        DisjointSet ds = new DisjointSet();
+
+        // Algorithme de fusion pour générer le labyrinthe parfait
+        for (int[] mur : murs) {
+            int i = mur[0];
+            int j = mur[1];
+
+            // Trouver les cellules adjacentes à ce mur
+            int[] cell1 = new int[2];
+            int[] cell2 = new int[2];
+
+            if (i % 2 == 0) { // Mur horizontal
+                cell1[0] = i - 1;
+                cell1[1] = j;
+                cell2[0] = i + 1;
+                cell2[1] = j;
+            } else { // Mur vertical
+                cell1[0] = i;
+                cell1[1] = j - 1;
+                cell2[0] = i;
+                cell2[1] = j + 1;
+            }
+
+            // Vérifier que les cellules sont dans les limites
+            if (cell1[0] < 0 || cell1[0] >= y || cell1[1] < 0 || cell1[1] >= x ||
+                    cell2[0] < 0 || cell2[0] >= y || cell2[1] < 0 || cell2[1] >= x) {
+                continue;
+            }
+
+            // Calculer les indices des cellules dans le tableau parent
+            int id1 = ((cell1[0] - 1) / 2) * cellCols + ((cell1[1] - 1) / 2);
+            int id2 = ((cell2[0] - 1) / 2) * cellCols + ((cell2[1] - 1) / 2);
+
+            // Vérifier que les indices sont dans les limites
+            if (id1 < 0 || id1 >= totalCells || id2 < 0 || id2 >= totalCells) {
+                continue;
+            }
+
+            // Si les cellules ne sont pas déjà connectées, abattre le mur
+            if (ds.find(parent, id1) != ds.find(parent, id2)) {
+                grille[i][j] = HERBE; // Abattre le mur
+                ds.union(parent, id1, id2); // Fusionner les ensembles
+            }
+        }
+
+        placerSortie();
+        placerElements();
+        placerPersonnagesAleatoirement();
+
+        // Marquer le labyrinthe comme généré
+        estGeneree = true;
+    }
+
+    // Méthode pour placer une sortie sur un bord (hors coins)
+    private void placerSortie() {
+        Random rand = new Random();
+        int cote = rand.nextInt(4); // 0: haut, 1: droite, 2: bas, 3: gauche
+        int position;
+
+        switch (cote) {
+            case 0: // Haut
+                position = 1 + 2 * rand.nextInt((x - 2) / 2);
+                grille[0][position] = HERBE;
+                break;
+            case 1: // Droite
+                position = 1 + 2 * rand.nextInt((y - 2) / 2);
+                grille[position][x - 1] = HERBE;
+                break;
+            case 2: // Bas
+                position = 1 + 2 * rand.nextInt((x - 2) / 2);
+                grille[y - 1][position] = HERBE;
+                break;
+            case 3: // Gauche
+                position = 1 + 2 * rand.nextInt((y - 2) / 2);
+                grille[position][0] = HERBE;
+                break;
+        }
+    }
+
+    // Méthode pour placer des éléments aléatoirement
+    private void placerElements() {
+        Random rand = new Random();
+        for (int i = 1; i < y - 1; i++) {
+            for (int j = 1; j < x - 1; j++) {
+                if (grille[i][j] == HERBE) {
+                    // 20% de chance d'avoir une marguerite
+                    // 10% de chance d'avoir un cactus
+                    int chance = rand.nextInt(10);
+                    if (chance < 2) {
+                        grille[i][j] = MARGUERITE;
+                    } else if (chance < 3) {
+                        grille[i][j] = CACTUS;
+                    }
+                }
+            }
+        }
+    }
+
+    // Méthode pour placer le mouton et le loup aléatoirement
+    private void placerPersonnagesAleatoirement() {
+        Random rand = new Random();
+
+        // Placer le mouton
+        int moutonX, moutonY;
+        do {
+            moutonX = 1 + rand.nextInt(x - 2);
+            moutonY = 1 + rand.nextInt(y - 2);
+        } while (grille[moutonY][moutonX] == ROCHER);
+
+        int elementSousMouton = grille[moutonY][moutonX];
+        grille[moutonY][moutonX] = MOUTON;
+
+        // Placer le loup à une distance minimale du mouton
+        int loupX, loupY;
+        do {
+            loupX = 1 + rand.nextInt(x - 2);
+            loupY = 1 + rand.nextInt(y - 2);
+        } while (grille[loupY][loupX] == ROCHER ||
+                (Math.abs(loupX - moutonX) + Math.abs(loupY - moutonY)) < 5);
+
+        grille[loupY][loupX] = LOUP;
+    }
+
+    private int find(int[] parent, int x) {
+        if (parent[x] < 0) return x;
+        parent[x] = find(parent, parent[x]);
+        return parent[x];
+    }
+
+    private void union(int[] parent, int x, int y) {
+        int rootX = find(parent, x);
+        int rootY = find(parent, y);
+        if (rootX != rootY) {
+            if (parent[rootX] < parent[rootY]) {
+                parent[rootX] += parent[rootY];
+                parent[rootY] = rootX;
+            } else {
+                parent[rootY] += parent[rootX];
+                parent[rootX] = rootY;
+            }
+        }
+    }
+
+    public boolean estGeneree() {
+        return estGeneree;
     }
 }
