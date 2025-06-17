@@ -674,8 +674,15 @@ public class Grille {
         }
     }
 
+    public void enregistrerElementMange(int x, int y, int typeElement) {
+        String cle = x + "," + y + "," + typeElement;
+        tempsRepousse.put(cle, DELAI_REPOUSSE);
+    }
+
+    // Modifier la méthode gererRepousse() existante :
     public void gererRepousse() {
         Map<String, Integer> nouveauTemps = new HashMap<>();
+
         for (Map.Entry<String, Integer> entry : tempsRepousse.entrySet()) {
             String[] coords = entry.getKey().split(",");
             int x = Integer.parseInt(coords[0]);
@@ -683,10 +690,17 @@ public class Grille {
             int type = Integer.parseInt(coords[2]);
             int temps = entry.getValue() - 1;
 
+            // Vérifier que la case est toujours de l'herbe (pas occupée par un personnage)
             if (temps <= 0 && grille[y][x] == HERBE) {
-                grille[y][x] = type; // Repousse
+                // Faire repousser l'élément
+                grille[y][x] = type;
+                System.out.println("Un élément a repoussé en (" + x + "," + y + ")");
             } else if (temps > 0) {
+                // Continuer le décompte
                 nouveauTemps.put(entry.getKey(), temps);
+            } else if (grille[y][x] != HERBE) {
+                // Si la case est occupée, reporter la repousse
+                nouveauTemps.put(entry.getKey(), 1);
             }
         }
         tempsRepousse = nouveauTemps;

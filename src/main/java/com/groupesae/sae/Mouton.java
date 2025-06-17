@@ -34,17 +34,21 @@ public class Mouton extends Personnage {
     public void deplacer(Grille grille, String direction, boolean automatique) {
         if (forceRestante <= 0) return;
 
+        int ancienX = x;
+        int ancienY = y;
+
         if (automatique) {
             deplacerAutomatiquement(grille);
         } else {
             deplacerManuel(grille, direction);
         }
 
-        forceRestante--;
+        if (x != ancienX || y != ancienY) {
+            forceRestante--;
 
-        // Si on n'a plus de force, on mange ce qu'il y a sur la case
-        if (forceRestante == 0) {
-            mangerNourriture();
+            if (forceRestante == 0) {
+                mangerNourriture();
+            }
         }
     }
 
@@ -116,53 +120,65 @@ public class Mouton extends Personnage {
             boolean voitLeLoup = aLigneDeVue(grille, loupX, loupY);
 
             if (voitLeLoup) {
-                // Mode fuite - chercher la sortie
+                // Mode fuite - utiliser le pathfinding pour aller vers la sortie
                 if (!enFuite) {
                     System.out.println("Le mouton entre en mode fuite!");
                 }
                 enFuite = true;
-                fuirVersLaSortie(grille);
+
+                // Utiliser l'algorithme choisi pour trouver le chemin vers la sortie
+                List<int[]> chemin = null;
+                if ("A*".equals(algorithmeChoisi)) {
+                    if (astar == null) astar = new Astar(grille);
+                    chemin = astar.trouverCheminVersSortie(x, y);
+                } else {
+                    if (dijkstra == null) dijkstra = new Dijkstra(grille);
+                    chemin = dijkstra.trouverCheminVersSortie(x, y);
+                }
+
+                if (chemin != null && !chemin.isEmpty()) {
+                    // Prendre le premier pas du chemin
+                    int[] prochainePas = chemin.get(0);
+                    int dx = Integer.compare(prochainePas[0], x);
+                    int dy = Integer.compare(prochainePas[1], y);
+
+                    if (peutSeDeplacer(grille, x + dx, y + dy)) {
+                        deplacerAvecDirection(grille, dx, dy);
+                        return;
+                    }
+                }
+                // Si pas de chemin ou chemin bloqué, fuir dans la direction opposée au loup
+                int[][] directions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+                int meilleurDx = 0, meilleurDy = 0;
+                int meilleureDistance = -1;
+
+                for (int[] dir : directions) {
+                    int nextX = x + dir[0];
+                    int nextY = y + dir[1];
+                    if (peutSeDeplacer(grille, nextX, nextY)) {
+                        int distance = Math.abs(nextX - loupX) + Math.abs(nextY - loupY);
+                        if (distance > meilleureDistance) {
+                            meilleureDistance = distance;
+                            meilleurDx = dir[0];
+                            meilleurDy = dir[1];
+                        }
+                    }
+                }
+
+                if (meilleurDx != 0 || meilleurDy != 0) {
+                    deplacerAvecDirection(grille, meilleurDx, meilleurDy);
+                }
             } else {
-                // Mode aléatoire
+                // Pas de loup visible, exploration normale
                 if (enFuite) {
-                    System.out.println("Le mouton ne voit plus le loup, retour au mode aléatoire");
+                    System.out.println("Le mouton ne voit plus le loup, retour au mode exploration");
                 }
                 enFuite = false;
                 deplacerAleatoirement(grille);
             }
         } else {
-            // Pas de loup, déplacement aléatoire
+            // Pas de loup sur la grille
             enFuite = false;
-            deplacerAleatoirement(grille);
-        }
-    }
-
-    private void fuirVersLaSortie(Grille grille) {
-        // Utiliser l'algorithme choisi pour trouver le chemin vers la sortie
-        List<int[]> chemin = null;
-
-        if ("A*".equals(algorithmeChoisi)) {
-            if (astar == null) astar = new Astar(grille);
-            chemin = astar.trouverCheminVersSortie(x, y);
-        } else {
-            if (dijkstra == null) dijkstra = new Dijkstra(grille);
-            chemin = dijkstra.trouverCheminVersSortie(x, y);
-        }
-
-        if (chemin != null && !chemin.isEmpty()) {
-            // Prendre le premier pas du chemin
-            int[] prochainePas = chemin.get(0);
-            int dx = Integer.compare(prochainePas[0], x);
-            int dy = Integer.compare(prochainePas[1], y);
-
-            if (peutSeDeplacer(grille, x + dx, y + dy)) {
-                deplacerAvecDirection(grille, dx, dy);
-            } else {
-                // Si le chemin est bloqué, essayer un mouvement aléatoire
-                deplacerAleatoirement(grille);
-            }
-        } else {
-            // Pas de chemin trouvé, déplacement aléatoire
             deplacerAleatoirement(grille);
         }
     }
@@ -195,14 +211,18 @@ public class Mouton extends Personnage {
             }
         }
 
-        // Sinon n'importe quel mouvement valide
+        // Si pas d'autre choix, accepter les cactus
         for (int[] dir : directionsList) {
-            if (peutSeDeplacer(grille, x + dir[0], y + dir[1])) {
+            int nextX = x + dir[0];
+            int nextY = y + dir[1];
+            if (peutSeDeplacer(grille, nextX, nextY)) {
                 deplacerAvecDirection(grille, dir[0], dir[1]);
                 return;
             }
         }
     }
+
+
 
     private void deplacerManuel(Grille grille, String direction) {
         int dx = 0, dy = 0;
@@ -225,12 +245,19 @@ public class Mouton extends Personnage {
             return false;
         }
 
-        // Restaurer l'élément précédent (repousse immédiate)
+        // Restaurer l'élément précédent sur la case qu'on quitte
         grille.getGrille()[y][x] = elementSousMouton;
 
         // Sauvegarder le type de la case où on va
         int typeCase = grille.getElement(nextY, nextX);
-        elementSousMouton = typeCase;
+
+        // Si on mange une marguerite ou un cactus, enregistrer pour la repousse
+        if (typeCase == Grille.MARGUERITE || typeCase == Grille.CACTUS) {
+            grille.enregistrerElementMange(nextX, nextY, typeCase);
+            elementSousMouton = Grille.HERBE; // La case devient herbe temporairement
+        } else {
+            elementSousMouton = typeCase;
+        }
 
         // Se déplacer
         x = nextX;
@@ -249,23 +276,17 @@ public class Mouton extends Personnage {
     }
 
     private void mangerNourriture() {
-        // Mettre à jour la force en fonction de ce qu'on a mangé
         switch (elementSousMouton) {
             case Grille.MARGUERITE:
                 this.force = FORCE_MARGUERITE;
-                System.out.println("Le mouton a mangé une marguerite! Force = " + force);
                 break;
             case Grille.HERBE:
                 this.force = FORCE_HERBE;
-                System.out.println("Le mouton a mangé de l'herbe! Force = " + force);
                 break;
             case Grille.CACTUS:
                 this.force = FORCE_CACTUS;
-                System.out.println("Le mouton a mangé un cactus! Force = " + force);
                 break;
         }
-        // Après avoir mangé, l'élément redevient de l'herbe (repousse)
-        elementSousMouton = Grille.HERBE;
     }
 
     public void reinitialiserForce() {
@@ -282,6 +303,10 @@ public class Mouton extends Personnage {
 
     public int getY() {
         return y;
+    }
+
+    public int getForce() {
+        return force;
     }
 
     public boolean estEnFuite() {

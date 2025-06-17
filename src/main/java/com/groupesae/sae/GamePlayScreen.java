@@ -30,7 +30,7 @@ public class GamePlayScreen {
     private int height;
     private Grille grille;
     private Map<Integer, Image> elementImages = new HashMap<>();
-    private final int CELL_SIZE = 30;
+    private final int CELL_SIZE = 25;
     private final int SORTIE = -5;
 
     private int positionMoutonX = -1, positionMoutonY = -1;
@@ -351,6 +351,12 @@ public class GamePlayScreen {
             return;
         }
 
+        // Enregistrer l'élément mangé si c'est une marguerite ou un cactus
+        int elementActuel = grille.getElement(nextY, nextX);
+        if (elementActuel == Grille.MARGUERITE || elementActuel == Grille.CACTUS) {
+            grille.enregistrerElementMange(nextX, nextY, elementActuel);
+        }
+
         String direction = getDirection(dx, dy);
         mouton.deplacer(grille, direction, false);
         positionMoutonX = mouton.getX();
@@ -411,9 +417,11 @@ public class GamePlayScreen {
                 positionMoutonY = mouton.getY();
                 casesVisiteesMouton.add(key);
 
+                // Mettre à jour la force du mouton
+                forceMouton = mouton.getForce();
+
                 // Ajouter la nouvelle position au chemin du mouton
                 cheminMouton.add(new int[]{positionMoutonX, positionMoutonY});
-
                 // Recalculer le chemin vers le loup
                 calculerCheminVersLoup();
 
@@ -758,6 +766,9 @@ public class GamePlayScreen {
                 pause.play();
             }
         } else {
+            // Fin du tour complet (mouton + loup) - Gérer les repousses
+            grille.gererRepousse();
+
             isMoutonTurn = true;
             turnLabel.setText("Tour du mouton");
             deplacementsRestants = forceMouton;
