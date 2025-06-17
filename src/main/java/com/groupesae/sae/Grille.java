@@ -15,21 +15,24 @@ public class Grille {
     protected static final int MOUTON = 8;
     protected static final int LOUP = 9;
 
+    private Map<String, Integer> tempsRepousse = new HashMap<>();
+    private final int DELAI_REPOUSSE = 3; // tours
+
     protected boolean estGeneree = false;
 
     public Grille(int x, int y, boolean graphique) {
         if (!graphique){
-        this.x = x;
-        this.y = y;
-        this.grille = new int[this.y][this.x];
-        genererGrille();
-        chooseExit();
-        chooseElements();
-        } else {
             this.x = x;
             this.y = y;
             this.grille = new int[this.y][this.x];
             genererGrille();
+            chooseExit();
+            chooseElements();
+        } else {
+            this.x = x;
+            this.y = y;
+            this.grille = new int[this.y][this.x];
+            genererLabyrinthe();
         }
 
     }
@@ -485,28 +488,34 @@ public class Grille {
         estGeneree = true;
     }
 
-    // Méthode pour placer une sortie sur un bord (hors coins)
     private void placerSortie() {
+        // Ne pas placer de sortie pour les grilles trop petites
+        if (x <= 3 || y <= 3) {
+            return;
+        }
+
         Random rand = new Random();
         int cote = rand.nextInt(4); // 0: haut, 1: droite, 2: bas, 3: gauche
-        int position;
 
         switch (cote) {
             case 0: // Haut
-                position = 1 + 2 * rand.nextInt((x - 2) / 2);
-                grille[0][position] = HERBE;
+                int posHaut = 1 + rand.nextInt(x - 2);
+                grille[0][posHaut] = HERBE;
                 break;
+
             case 1: // Droite
-                position = 1 + 2 * rand.nextInt((y - 2) / 2);
-                grille[position][x - 1] = HERBE;
+                int posDroite = 1 + rand.nextInt(y - 2);
+                grille[posDroite][x - 1] = HERBE;
                 break;
+
             case 2: // Bas
-                position = 1 + 2 * rand.nextInt((x - 2) / 2);
-                grille[y - 1][position] = HERBE;
+                int posBas = 1 + rand.nextInt(x - 2);
+                grille[y - 1][posBas] = HERBE;
                 break;
+
             case 3: // Gauche
-                position = 1 + 2 * rand.nextInt((y - 2) / 2);
-                grille[position][0] = HERBE;
+                int posGauche = 1 + rand.nextInt(y - 2);
+                grille[posGauche][0] = HERBE;
                 break;
         }
     }
@@ -530,27 +539,47 @@ public class Grille {
         }
     }
 
-    // Méthode pour placer le mouton et le loup aléatoirement
     private void placerPersonnagesAleatoirement() {
         Random rand = new Random();
 
+        // Vérifier que la grille est assez grande
+        if (x <= 2 || y <= 2) {
+            return;
+        }
+
         // Placer le mouton
         int moutonX, moutonY;
+        int tentatives = 0;
         do {
-            moutonX = 1 + rand.nextInt(x - 2);
-            moutonY = 1 + rand.nextInt(y - 2);
+            moutonX = 1 + rand.nextInt(Math.max(1, x - 2));
+            moutonY = 1 + rand.nextInt(Math.max(1, y - 2));
+            tentatives++;
+            // Éviter une boucle infinie
+            if (tentatives > 100) {
+                return;
+            }
         } while (grille[moutonY][moutonX] == ROCHER);
 
-        int elementSousMouton = grille[moutonY][moutonX];
         grille[moutonY][moutonX] = MOUTON;
 
         // Placer le loup à une distance minimale du mouton
         int loupX, loupY;
+        tentatives = 0;
         do {
-            loupX = 1 + rand.nextInt(x - 2);
-            loupY = 1 + rand.nextInt(y - 2);
+            loupX = 1 + rand.nextInt(Math.max(1, x - 2));
+            loupY = 1 + rand.nextInt(Math.max(1, y - 2));
+            tentatives++;
+            // Pour les petites grilles, réduire la distance minimale
+            int distanceMin = Math.min(5, (x + y) / 4);
+            if (tentatives > 100) {
+                // Si on ne trouve pas de place, placer le loup n'importe où
+                if (grille[loupY][loupX] != ROCHER && grille[loupY][loupX] != MOUTON) {
+                    break;
+                }
+            }
         } while (grille[loupY][loupX] == ROCHER ||
-                (Math.abs(loupX - moutonX) + Math.abs(loupY - moutonY)) < 5);
+                grille[loupY][loupX] == MOUTON ||
+                (Math.abs(loupX - moutonX) + Math.abs(loupY - moutonY)) < Math.min(5, (x + y) / 4));
 
         grille[loupY][loupX] = LOUP;
     }
@@ -577,5 +606,89 @@ public class Grille {
 
     public boolean estGeneree() {
         return estGeneree;
+    }
+
+    public Grille copier() {
+        Grille copie = new Grille(this.getX(), this.getY(), true);
+        int[][] grilleCopie = copie.getGrille();
+        int[][] grilleOriginale = this.getGrille();
+
+        for (int y = 0; y < this.getY(); y++) {
+            for (int x = 0; x < this.getX(); x++) {
+                grilleCopie[y][x] = grilleOriginale[y][x];
+            }
+        }
+
+        return copie;
+    }
+
+    public List<int[]> getSorties() {
+        List<int[]> sorties = new ArrayList<>();
+
+        // Bord haut et bas
+        for (int x = 1; x < getX() - 1; x++) {
+            if (getElement(0, x) != ROCHER) {
+                sorties.add(new int[]{x, 0});
+            }
+            if (getElement(getY() - 1, x) != ROCHER) {
+                sorties.add(new int[]{x, getY() - 1});
+            }
+        }
+
+        // Bord gauche et droit
+        for (int y = 1; y < getY() - 1; y++) {
+            if (getElement(y, 0) != ROCHER) {
+                sorties.add(new int[]{0, y});
+            }
+            if (getElement(y, getX() - 1) != ROCHER) {
+                sorties.add(new int[]{getX() - 1, y});
+            }
+        }
+
+        return sorties;
+    }
+
+    public void genererLabyrintheImparfait(double tauxSuppression) {
+        genererLabyrinthe(); // Génère d'abord un labyrinthe parfait
+        Random rand = new Random();
+        int mursSupprimes = 0;
+        int nbMurs = 0;
+        List<int[]> murs = new ArrayList<>();
+        for (int i = 1; i < y - 1; i++) {
+            for (int j = 1; j < x - 1; j++) {
+                if (grille[i][j] == ROCHER) {
+                    // Vérifie s'il s'agit d'un mur interne
+                    if ((i % 2 == 1 && j % 2 == 0) || (i % 2 == 0 && j % 2 == 1)) {
+                        murs.add(new int[]{i, j});
+                        nbMurs++;
+                    }
+                }
+            }
+        }
+        int nbASupprimer = (int)(tauxSuppression * nbMurs);
+        Collections.shuffle(murs);
+        for (int k = 0; k < nbASupprimer; k++) {
+            int[] mur = murs.get(k);
+            grille[mur[0]][mur[1]] = HERBE;
+            mursSupprimes++;
+        }
+    }
+
+    public void gererRepousse() {
+        Map<String, Integer> nouveauTemps = new HashMap<>();
+        for (Map.Entry<String, Integer> entry : tempsRepousse.entrySet()) {
+            String[] coords = entry.getKey().split(",");
+            int x = Integer.parseInt(coords[0]);
+            int y = Integer.parseInt(coords[1]);
+            int type = Integer.parseInt(coords[2]);
+            int temps = entry.getValue() - 1;
+
+            if (temps <= 0 && grille[y][x] == HERBE) {
+                grille[y][x] = type; // Repousse
+            } else if (temps > 0) {
+                nouveauTemps.put(entry.getKey(), temps);
+            }
+        }
+        tempsRepousse = nouveauTemps;
     }
 }

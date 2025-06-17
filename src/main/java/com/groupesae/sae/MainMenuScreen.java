@@ -27,6 +27,9 @@ public class MainMenuScreen {
         exitButton = new Button("Quitter");
         exitButton.setPrefSize(120, 40);
 
+        primaryStage.setWidth(1300);
+        primaryStage.setHeight(600);
+
         setupButtonActions();
     }
 
@@ -73,6 +76,6 @@ public class MainMenuScreen {
         playButton.setStyle("-fx-font-size: 18px;");
         exitButton.setStyle("-fx-font-size: 14px;");
 
-        return new Scene(root, 1400, 800);
+        return new Scene(root, 1300, 600);
     }
 }

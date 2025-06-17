@@ -1,22 +1,86 @@
 package com.groupesae.sae;
 
+import java.util.*;
+
 public class Loup extends Personnage {
     private boolean enChasse;
     private final int VISION = 5;
+    private int forceRestante;
+    private final int force;
+
+    private int elementSousLoup = Grille.HERBE;
+    private Random random = new Random();
 
     public Loup(int x, int y) {
         this.x = x;
         this.y = y;
         this.force = 3;
+        this.forceRestante = this.force;
         this.enChasse = false;
     }
 
     @Override
     public void deplacer(Grille grille, String direction, boolean automatique) {
+        if (forceRestante <= 0) return;
+
         if (automatique) {
             deplacerAutomatiquement(grille);
         } else {
             deplacerManuellement(grille, direction);
+        }
+        forceRestante--;
+    }
+
+    @Override
+    public boolean aLigneDeVue(Grille grille, int cibleX, int cibleY) {
+        // Vérifier d'abord la distance de Manhattan
+        int distance = Math.abs(x - cibleX) + Math.abs(y - cibleY);
+        if (distance > VISION) {
+            return false; // Trop loin pour voir
+        }
+
+        // Vérifier la ligne de vue avec les obstacles
+        int x0 = this.x;
+        int y0 = this.y;
+        int x1 = cibleX;
+        int y1 = cibleY;
+
+        // Algorithme de Bresenham pour tracer la ligne
+        int dx = Math.abs(x1 - x0);
+        int dy = Math.abs(y1 - y0);
+        int sx = x0 < x1 ? 1 : -1;
+        int sy = y0 < y1 ? 1 : -1;
+        int err = dx - dy;
+
+        int currentX = x0;
+        int currentY = y0;
+
+        while (true) {
+            // Si on est arrivé à la cible
+            if (currentX == x1 && currentY == y1) {
+                return true;
+            }
+
+            // Vérifier les obstacles (sauf sur la case de départ)
+            if (!(currentX == x0 && currentY == y0)) {
+                int element = grille.getElement(currentY, currentX);
+
+                // Les rochers bloquent la vue
+                if (element == Grille.ROCHER) {
+                    return false;
+                }
+            }
+
+            // Passer à la case suivante
+            int e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                currentX += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                currentY += sy;
+            }
         }
     }
 
@@ -47,13 +111,22 @@ public class Loup extends Personnage {
             if (moutonX != -1) break;
         }
 
-        // Vérifier si le mouton est visible (distance Manhattan <= VISION)
         if (moutonX != -1 && moutonY != -1) {
-            int distance = Math.abs(moutonX - x) + Math.abs(moutonY - y);
-            if (distance <= VISION) {
+            // Vérifier si on voit le mouton (distance ET ligne de vue)
+            boolean voitLeMouton = aLigneDeVue(grille, moutonX, moutonY);
+
+            if (voitLeMouton) {
+                // Mode chasse activé
+                if (!enChasse) {
+                    System.out.println("Le loup entre en mode chasse!");
+                }
                 enChasse = true;
                 poursuivreMouton(grille, moutonX, moutonY);
             } else {
+                // Mode aléatoire
+                if (enChasse) {
+                    System.out.println("Le loup perd le mouton de vue, retour au mode aléatoire");
+                }
                 enChasse = false;
                 deplacerAleatoirement(grille);
             }
@@ -64,42 +137,41 @@ public class Loup extends Personnage {
     }
 
     private void poursuivreMouton(Grille grille, int moutonX, int moutonY) {
-        // Déterminer la direction pour se rapprocher du mouton
-        int dx = Integer.compare(moutonX, x);
-        int dy = Integer.compare(moutonY, y);
+        // Utiliser un algorithme simple pour poursuivre le mouton
+        // Choisir la direction qui rapproche le plus du mouton
+        int[][] directions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+        int meilleurDx = 0, meilleurDy = 0;
+        int meilleureDistance = Integer.MAX_VALUE;
 
-        // Priorité à la direction avec la plus grande différence
-        if (Math.abs(dx) > Math.abs(dy)) {
-            if (peutDeplacer(grille, dx, 0)) {
-                deplacerAvecDirection(grille, dx, 0);
-            } else if (peutDeplacer(grille, 0, dy)) {
-                deplacerAvecDirection(grille, 0, dy);
-            } else {
-                deplacerAleatoirement(grille);
+        for (int[] dir : directions) {
+            int nextX = x + dir[0];
+            int nextY = y + dir[1];
+
+            if (peutDeplacer(grille, dir[0], dir[1])) {
+                int distance = Math.abs(nextX - moutonX) + Math.abs(nextY - moutonY);
+                if (distance < meilleureDistance) {
+                    meilleureDistance = distance;
+                    meilleurDx = dir[0];
+                    meilleurDy = dir[1];
+                }
             }
+        }
+
+        if (meilleurDx != 0 || meilleurDy != 0) {
+            deplacerAvecDirection(grille, meilleurDx, meilleurDy);
         } else {
-            if (peutDeplacer(grille, 0, dy)) {
-                deplacerAvecDirection(grille, 0, dy);
-            } else if (peutDeplacer(grille, dx, 0)) {
-                deplacerAvecDirection(grille, dx, 0);
-            } else {
-                deplacerAleatoirement(grille);
-            }
+            // Si aucune direction ne rapproche, se déplacer aléatoirement
+            deplacerAleatoirement(grille);
         }
     }
 
     private void deplacerAleatoirement(Grille grille) {
-        // Directions possibles: haut, droite, bas, gauche
+        // Mélanger les directions pour un déplacement aléatoire
         int[][] directions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+        List<int[]> directionsList = Arrays.asList(directions);
+        Collections.shuffle(directionsList, random);
 
-        // Mélanger les directions pour un mouvement aléatoire
-        java.util.List<int[]> directionsList = new java.util.ArrayList<>();
-        for (int[] dir : directions) {
-            directionsList.add(dir);
-        }
-        java.util.Collections.shuffle(directionsList);
-
-        // Essayer chaque direction jusqu'à en trouver une valide
+        // Essayer chaque direction dans un ordre aléatoire
         for (int[] dir : directionsList) {
             if (peutDeplacer(grille, dir[0], dir[1])) {
                 deplacerAvecDirection(grille, dir[0], dir[1]);
@@ -109,79 +181,57 @@ public class Loup extends Personnage {
     }
 
     private boolean peutDeplacer(Grille grille, int dx, int dy) {
-        for (int i = 1; i <= force; i++) {
-            int newX = x + (dx * i);
-            int newY = y + (dy * i);
+        int newX = x + dx;
+        int newY = y + dy;
 
-            // Vérifier si on sort de la grille
-            if (newX < 0 || newX >= grille.getX() || newY < 0 || newY >= grille.getY()) {
-                return false;
-            }
-
-            // Vérifier si on rencontre un rocher
-            if (grille.getElement(newY, newX) == Grille.ROCHER) {
-                return false;
-            }
-
-            // Si on trouve le mouton, on peut se déplacer
-            if (grille.getElement(newY, newX) == Grille.MOUTON) {
-                return true;
-            }
+        if (newX < 0 || newX >= grille.getX() || newY < 0 || newY >= grille.getY()) {
+            return false;
         }
-        return true;
+
+        return grille.getElement(newY, newX) != Grille.ROCHER;
     }
 
     private void deplacerAvecDirection(Grille grille, int dx, int dy) {
         if (dx == 0 && dy == 0) return;
 
-        int currentX = x;
-        int currentY = y;
-        int casesParcourues = 0;
-        boolean moutonAttrape = false;
+        int nextX = x + dx;
+        int nextY = y + dy;
 
-        for (int i = 0; i < force; i++) {
-            int nextX = currentX + dx;
-            int nextY = currentY + dy;
-
-            // Vérifier si on sort de la grille ou si on rencontre un rocher
-            if (nextX < 0 || nextX >= grille.getX() || nextY < 0 || nextY >= grille.getY() ||
-                    grille.getElement(nextY, nextX) == Grille.ROCHER) {
-                break;
-            }
-
-            // Vérifier si on a attrapé le mouton
-            if (grille.getElement(nextY, nextX) == Grille.MOUTON) {
-                moutonAttrape = true;
-                currentX = nextX;
-                currentY = nextY;
-                casesParcourues++;
-                break;
-            }
-
-            currentX = nextX;
-            currentY = nextY;
-            casesParcourues++;
+        if (nextX < 0 || nextX >= grille.getX() || nextY < 0 || nextY >= grille.getY() ||
+                grille.getElement(nextY, nextX) == Grille.ROCHER) {
+            return;
         }
 
-        if (casesParcourues > 0) {
-            int elementSousLoup = grille.getElement(y, x);
-            if (elementSousLoup == Grille.LOUP) {
-                elementSousLoup = Grille.HERBE;
-            }
+        // Sauvegarder l'élément sous le loup
+        grille.getGrille()[y][x] = elementSousLoup;
 
-            // Mettre à jour la grille
-            grille.getGrille()[y][x] = elementSousLoup;
+        // Sauvegarder le nouvel élément
+        int typeCase = grille.getElement(nextY, nextX);
+        elementSousLoup = (typeCase == Grille.MOUTON) ? Grille.HERBE : typeCase;
 
-            // Mettre à jour les coordonnées du loup
-            x = currentX;
-            y = currentY;
+        // Déplacer le loup
+        x = nextX;
+        y = nextY;
+        grille.getGrille()[y][x] = Grille.LOUP;
+    }
 
-            // Placer le loup à sa nouvelle position
-            grille.getGrille()[y][x] = Grille.LOUP;
-        }
+    public boolean aEncoreForce() {
+        return forceRestante > 0;
+    }
+
+    public void reinitialiserForce() {
+        this.forceRestante = this.force;
     }
 
     public boolean estEnChasse() {
         return enChasse;
+    }
+
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
     }
 }

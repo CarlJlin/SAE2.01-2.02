@@ -13,8 +13,8 @@ public class MainFX extends Application {
         primaryStage.setTitle("Mange moi si tu peux !");
         MainMenuScreen mainMenuScreen = new MainMenuScreen(primaryStage);
         primaryStage.setScene(mainMenuScreen.getScene());
-        primaryStage.setWidth(1400);
-        primaryStage.setHeight(800);
+        primaryStage.setWidth(1100);
+        primaryStage.setHeight(600);
         primaryStage.setOnCloseRequest(event -> {
             event.consume();
             System.exit(0);
@@ -22,8 +22,8 @@ public class MainFX extends Application {
 
         primaryStage.sizeToScene();
         primaryStage.setResizable(false);
-        primaryStage.setMinWidth(1400);
-        primaryStage.setMinHeight(800);
+        primaryStage.setMinWidth(1300);
+        primaryStage.setMinHeight(600);
 
         primaryStage.show();
     }

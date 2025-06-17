@@ -406,7 +406,7 @@ public class GridCustomizationScreen {
             alert.showAndWait();
         } else {
             Grille grille = createGrilleFromData();
-            GamePlayScreen gamePlayScreen = new GamePlayScreen(primaryStage, grille, false);
+            GamePlayScreen gamePlayScreen = new GamePlayScreen(primaryStage, grille);
             primaryStage.setScene(gamePlayScreen.getScene());
             primaryStage.show();
         }
