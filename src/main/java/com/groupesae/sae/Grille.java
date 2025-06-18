@@ -16,7 +16,7 @@ public class Grille {
     protected static final int LOUP = 9;
 
     private Map<String, Integer> tempsRepousse = new HashMap<>();
-    private final int DELAI_REPOUSSE = 3; // tours
+    private final int DELAI_REPOUSSE = 0; // tours
 
     protected boolean estGeneree = false;
 
@@ -679,7 +679,6 @@ public class Grille {
         tempsRepousse.put(cle, DELAI_REPOUSSE);
     }
 
-    // Modifier la méthode gererRepousse() existante :
     public void gererRepousse() {
         Map<String, Integer> nouveauTemps = new HashMap<>();
 

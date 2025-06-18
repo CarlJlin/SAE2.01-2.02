@@ -23,7 +23,6 @@ import java.io.File;
 import java.util.*;
 
 public class GamePlayScreen {
-    private static final int CELL_MAX_SIZE = 40;
     private ComboBox<String> pathfindingMode;
     private Stage primaryStage;
     private int width;
@@ -83,7 +82,11 @@ public class GamePlayScreen {
         if (positionMoutonX != -1 && positionMoutonY != -1) {
             this.mouton = new Mouton(positionMoutonX, positionMoutonY);
             // Initialiser le chemin du mouton avec sa position initiale
+            cheminMouton = new ArrayList<>();
             cheminMouton.add(new int[]{positionMoutonX, positionMoutonY});
+            // AJOUT : Initialiser les déplacements restants avec la force du mouton
+            this.forceMouton = mouton.getForce();
+            this.deplacementsRestants = this.forceMouton;
         }
     }
 
@@ -109,6 +112,7 @@ public class GamePlayScreen {
             calculerCheminVersLoup();
         }
     }
+
 
     private void loadImages() {
         try {
@@ -336,12 +340,13 @@ public class GamePlayScreen {
     }
 
     private void deplacerMouton(int dx, int dy) {
-        if (!isMoutonTurn || automaticMouton) return;
+        if (!isMoutonTurn || automaticMouton || partieTerminee) return;
 
         int nextX = positionMoutonX + dx;
         int nextY = positionMoutonY + dy;
         String key = nextX + "," + nextY;
 
+        // Au début d'un nouveau tour, réinitialiser les cases visitées
         if (deplacementsRestants == forceMouton) {
             casesVisiteesMouton.clear();
             casesVisiteesMouton.add(positionMoutonX + "," + positionMoutonY);
@@ -351,174 +356,102 @@ public class GamePlayScreen {
             return;
         }
 
-        // Enregistrer l'élément mangé si c'est une marguerite ou un cactus
-        int elementActuel = grille.getElement(nextY, nextX);
-        if (elementActuel == Grille.MARGUERITE || elementActuel == Grille.CACTUS) {
-            grille.enregistrerElementMange(nextX, nextY, elementActuel);
-        }
+        // Sauvegarder la position avant le déplacement
+        int ancienX = positionMoutonX;
+        int ancienY = positionMoutonY;
 
+        // Déplacer le mouton (il se déplacera de toute sa force dans la direction)
         String direction = getDirection(dx, dy);
         mouton.deplacer(grille, direction, false);
+
+        // Mettre à jour la position du mouton
         positionMoutonX = mouton.getX();
         positionMoutonY = mouton.getY();
-        casesVisiteesMouton.add(key);
-        deplacementsRestants--;
-        deplacementsLabel.setText("Déplacements restants: " + deplacementsRestants);
 
-        if (deplacementsRestants <= 0) {
+        // Si le mouton s'est déplacé, mettre à jour les cases visitées
+        if (positionMoutonX != ancienX || positionMoutonY != ancienY) {
+            // Ajouter toutes les cases parcourues aux cases visitées
+            int stepX = Integer.compare(positionMoutonX, ancienX);
+            int stepY = Integer.compare(positionMoutonY, ancienY);
+            int tempX = ancienX;
+            int tempY = ancienY;
+
+            while (tempX != positionMoutonX || tempY != positionMoutonY) {
+                tempX += stepX;
+                tempY += stepY;
+                casesVisiteesMouton.add(tempX + "," + tempY);
+            }
+
+            // Vérifier la victoire
+            if ((positionMoutonX == 0 || positionMoutonX == grille.getX() - 1 ||
+                    positionMoutonY == 0 || positionMoutonY == grille.getY() - 1) &&
+                    grille.getElement(positionMoutonY, positionMoutonX) != Grille.ROCHER) {
+                partieTerminee = true;
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Fin de partie");
+                alert.setHeaderText("Le mouton a gagné!");
+                alert.setContentText("Le mouton a atteint la sortie!");
+                alert.showAndWait();
+                return;
+            }
+
+            // Le mouton a utilisé toute sa force d'un coup
+            deplacementsRestants = 0;
+            deplacementsLabel.setText("Déplacements restants: " + deplacementsRestants);
             changeTurn();
         }
+
         drawGrid();
     }
 
     private void deplacerMoutonAutomatiquement() {
+        if (partieTerminee) return;
+
+        // Au début d'un nouveau tour, réinitialiser
         if (deplacementsRestants == forceMouton) {
             casesVisiteesMouton.clear();
             casesVisiteesMouton.add(positionMoutonX + "," + positionMoutonY);
 
             // Réinitialiser le chemin du mouton au début du tour
-            cheminMouton.clear();
+            cheminMouton = new ArrayList<>();
             cheminMouton.add(new int[]{positionMoutonX, positionMoutonY});
         }
 
+        // Vérifier la distance au loup
         int distanceLoup = Math.abs(positionMoutonX - positionLoupX) + Math.abs(positionMoutonY - positionLoupY);
 
-        if (distanceLoup <= mouton.VISION) {
+        // Si le loup est visible, utiliser le pathfinding vers la sortie
+        if (distanceLoup <= mouton.VISION && mouton.aLigneDeVue(grille, positionLoupX, positionLoupY)) {
+            // Recalculer le chemin optimal si nécessaire
             if (cheminOptimal == null || cheminOptimal.isEmpty() || indexCheminActuel >= cheminOptimal.size()) {
                 if (pathfindingMode != null && "A*".equals(pathfindingMode.getValue())) {
                     cheminOptimal = astar.trouverCheminVersSortie(positionMoutonX, positionMoutonY);
                 } else {
                     cheminOptimal = dijkstra.trouverCheminVersSortie(positionMoutonX, positionMoutonY);
-                    System.out.println("Chemin optimal recalculé vers la sortie.");
                 }
                 indexCheminActuel = 0;
             }
+
             if (cheminOptimal == null || cheminOptimal.isEmpty()) {
-                changeTurn();
+                // Pas de chemin vers la sortie, essayer de fuir
+                deplacerMoutonAleatoire();
                 return;
             }
-            int[] prochainePas = cheminOptimal.get(indexCheminActuel);
-            int dx = Integer.compare(prochainePas[0], positionMoutonX);
-            int dy = Integer.compare(prochainePas[1], positionMoutonY);
-            int nouvelleX = positionMoutonX + dx;
-            int nouvelleY = positionMoutonY + dy;
 
-            String key = nouvelleX + "," + nouvelleY;
-            if (casesVisiteesMouton.contains(key)) {
-                changeTurn();
-                return;
-            }
-            indexCheminActuel++;
+            // Calculer la direction générale vers la sortie en tenant compte de la force
+            int targetIndex = Math.min(indexCheminActuel + forceMouton, cheminOptimal.size() - 1);
+            int[] targetPos = cheminOptimal.get(targetIndex);
 
-            PauseTransition pause = new PauseTransition(Duration.seconds(0.5));
-            pause.setOnFinished(e -> {
-                mouton.deplacer(grille, getDirection(dx, dy), true);
-                positionMoutonX = mouton.getX();
-                positionMoutonY = mouton.getY();
-                casesVisiteesMouton.add(key);
+            int dx = Integer.compare(targetPos[0], positionMoutonX);
+            int dy = Integer.compare(targetPos[1], positionMoutonY);
 
-                // Mettre à jour la force du mouton
-                forceMouton = mouton.getForce();
+            // Mettre à jour l'index pour le prochain tour
+            indexCheminActuel = targetIndex;
 
-                // Ajouter la nouvelle position au chemin du mouton
-                cheminMouton.add(new int[]{positionMoutonX, positionMoutonY});
-                // Recalculer le chemin vers le loup
-                calculerCheminVersLoup();
-
-                deplacementsRestants--;
-                deplacementsLabel.setText("Déplacements restants: " + deplacementsRestants);
-                drawGrid();
-                if (deplacementsRestants > 0) {
-                    PauseTransition nextMove = new PauseTransition(Duration.seconds(0.5));
-                    nextMove.setOnFinished(event -> deplacerMoutonAutomatiquement());
-                    nextMove.play();
-                } else {
-                    changeTurn();
-                }
-            });
-            pause.play();
-            return;
-        }
-
-        int[][] directions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
-        int meilleurScore = -1;
-        int meilleurDx = 0;
-        int meilleurDy = 0;
-
-        for (int[] dir : directions) {
-            int nextX = positionMoutonX + dir[0];
-            int nextY = positionMoutonY + dir[1];
-            String key = nextX + "," + nextY;
-
-            if (nextX >= 0 && nextX < grille.getX() && nextY >= 0 && nextY < grille.getY()
-                    && !casesVisiteesMouton.contains(key)) {
-                int element = grille.getElement(nextY, nextX);
-
-                if (element != Grille.ROCHER && element != Grille.LOUP) {
-                    int score = 0;
-                    if (element == Grille.MARGUERITE) score = 3;
-                    else if (element == Grille.HERBE) score = 2;
-                    else if (element == Grille.CACTUS) score = 1;
-
-                    if (score > meilleurScore) {
-                        meilleurScore = score;
-                        meilleurDx = dir[0];
-                        meilleurDy = dir[1];
-                    }
-                }
-            }
-        }
-
-        if (meilleurScore == -1) {
-            // Si aucun chemin trouvé, on essaie de se déplacer n'importe où
-            for (int[] dir : directions) {
-                int nextX = positionMoutonX + dir[0];
-                int nextY = positionMoutonY + dir[1];
-                if (nextX >= 0 && nextX < grille.getX() && nextY >= 0 && nextY < grille.getY()) {
-                    int element = grille.getElement(nextY, nextX);
-                    if (element != Grille.ROCHER && element != Grille.LOUP) {
-                        meilleurDx = dir[0];
-                        meilleurDy = dir[1];
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (meilleurDx != 0 || meilleurDy != 0) {
-            final int dx = meilleurDx;
-            final int dy = meilleurDy;
-            int nouvelleX = positionMoutonX + dx;
-            int nouvelleY = positionMoutonY + dy;
-            String key = nouvelleX + "," + nouvelleY;
-
-            PauseTransition pause = new PauseTransition(Duration.seconds(0.5));
-            pause.setOnFinished(e -> {
-                mouton.deplacer(grille, getDirection(dx, dy), true);
-                positionMoutonX = mouton.getX();
-                positionMoutonY = mouton.getY();
-                casesVisiteesMouton.add(key);
-
-                // Ajouter la nouvelle position au chemin du mouton
-                cheminMouton.add(new int[]{positionMoutonX, positionMoutonY});
-
-                // Recalculer le chemin vers le loup
-                calculerCheminVersLoup();
-
-                deplacementsRestants--;
-                deplacementsLabel.setText("Déplacements restants: " + deplacementsRestants);
-                drawGrid();
-                if (deplacementsRestants > 0) {
-                    PauseTransition nextMove = new PauseTransition(Duration.seconds(0.5));
-                    nextMove.setOnFinished(event -> deplacerMoutonAutomatiquement());
-                    nextMove.play();
-                } else {
-                    changeTurn();
-                }
-            });
-            pause.play();
+            effectuerDeplacementMouton(dx, dy);
         } else {
-            changeTurn();
+            // Mode exploration : chercher la meilleure nourriture
+            deplacerMoutonAleatoire();
         }
     }
 
@@ -751,6 +684,9 @@ public class GamePlayScreen {
 
     private void changeTurn() {
         if (isMoutonTurn) {
+            // AJOUT : Faire manger le mouton à la fin de son tour
+            mouton.finirTour();
+
             isMoutonTurn = false;
             turnLabel.setText("Tour du loup");
             deplacementsRestants = forceLoup;
@@ -771,6 +707,9 @@ public class GamePlayScreen {
 
             isMoutonTurn = true;
             turnLabel.setText("Tour du mouton");
+
+            // IMPORTANT : Récupérer la force mise à jour du mouton
+            forceMouton = mouton.getForce();
             deplacementsRestants = forceMouton;
             mouton.reinitialiserForce();
 
@@ -808,5 +747,129 @@ public class GamePlayScreen {
         if (dx == -1 && dy == 0) return "gauche";
         if (dx == 1 && dy == 0) return "droite";
         return ""; // Direction invalide
+    }
+
+    private void deplacerMoutonAleatoire() {
+        int[][] directions = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+        int meilleurScore = -1;
+        int meilleurDx = 0;
+        int meilleurDy = 0;
+
+        // Évaluer chaque direction
+        for (int[] dir : directions) {
+            // Simuler où le mouton arriverait avec sa force actuelle
+            int tempX = positionMoutonX;
+            int tempY = positionMoutonY;
+            int distance = 0;
+            boolean valide = true;
+
+            // Simuler le déplacement complet
+            while (distance < forceMouton && valide) {
+                int nextX = tempX + dir[0];
+                int nextY = tempY + dir[1];
+
+                // Vérifier les limites et obstacles
+                if (nextX < 0 || nextX >= grille.getX() || nextY < 0 || nextY >= grille.getY()) {
+                    break;
+                }
+
+                int element = grille.getElement(nextY, nextX);
+                if (element == Grille.ROCHER || element == Grille.LOUP) {
+                    break;
+                }
+
+                tempX = nextX;
+                tempY = nextY;
+                distance++;
+            }
+
+            // Si on peut se déplacer dans cette direction
+            if (distance > 0) {
+                String key = tempX + "," + tempY;
+                if (!casesVisiteesMouton.contains(key)) {
+                    int element = grille.getElement(tempY, tempX);
+                    int score = 0;
+
+                    // Évaluer la nourriture sur la case d'arrivée
+                    if (element == Grille.MARGUERITE) score = 30;
+                    else if (element == Grille.HERBE) score = 20;
+                    else if (element == Grille.CACTUS) score = 10;
+
+                    // Bonus si on se rapproche d'un bord (sortie potentielle)
+                    if (tempX == 0 || tempX == grille.getX() - 1 ||
+                            tempY == 0 || tempY == grille.getY() - 1) {
+                        score += 50;
+                    }
+
+                    if (score > meilleurScore) {
+                        meilleurScore = score;
+                        meilleurDx = dir[0];
+                        meilleurDy = dir[1];
+                    }
+                }
+            }
+        }
+
+        if (meilleurDx != 0 || meilleurDy != 0) {
+            effectuerDeplacementMouton(meilleurDx, meilleurDy);
+        } else {
+            // Aucun mouvement possible, fin du tour
+            changeTurn();
+        }
+    }
+
+    private void effectuerDeplacementMouton(int dx, int dy) {
+        PauseTransition pause = new PauseTransition(Duration.seconds(0.5));
+        pause.setOnFinished(e -> {
+            // Sauvegarder la position avant déplacement
+            int ancienX = positionMoutonX;
+            int ancienY = positionMoutonY;
+
+            // Déplacer le mouton
+            mouton.deplacer(grille, getDirection(dx, dy), true);
+            positionMoutonX = mouton.getX();
+            positionMoutonY = mouton.getY();
+
+            // Marquer toutes les cases parcourues comme visitées
+            int stepX = Integer.compare(positionMoutonX, ancienX);
+            int stepY = Integer.compare(positionMoutonY, ancienY);
+            int tempX = ancienX;
+            int tempY = ancienY;
+
+            while (tempX != positionMoutonX || tempY != positionMoutonY) {
+                tempX += stepX;
+                tempY += stepY;
+                casesVisiteesMouton.add(tempX + "," + tempY);
+                cheminMouton.add(new int[]{tempX, tempY});
+            }
+
+            // Vérifier si le mouton a atteint une sortie
+            if ((positionMoutonX == 0 || positionMoutonX == grille.getX() - 1 ||
+                    positionMoutonY == 0 || positionMoutonY == grille.getY() - 1) &&
+                    grille.getElement(positionMoutonY, positionMoutonX) != Grille.ROCHER) {
+                partieTerminee = true;
+                Platform.runLater(() -> {
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("Fin de partie");
+                    alert.setHeaderText("Le mouton a gagné!");
+                    alert.setContentText("Le mouton a atteint la sortie!");
+                    alert.showAndWait();
+                });
+                return;
+            }
+
+            // Recalculer le chemin vers le loup
+            calculerCheminVersLoup();
+
+            // Le mouton a utilisé toute sa force
+            deplacementsRestants = 0;
+            deplacementsLabel.setText("Déplacements restants: " + deplacementsRestants);
+            drawGrid();
+
+            if (!partieTerminee) {
+                changeTurn();
+            }
+        });
+        pause.play();
     }
 }

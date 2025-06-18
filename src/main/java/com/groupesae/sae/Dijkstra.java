@@ -186,7 +186,7 @@ public class Dijkstra implements PathFinder {
         switch (element) {
             case Grille.HERBE: return 2;
             case Grille.MARGUERITE: return 1;
-            case Grille.CACTUS: return 4;
+            case Grille.CACTUS: return 3;
             case Grille.LOUP: return 10;
             default: return 2;
         }

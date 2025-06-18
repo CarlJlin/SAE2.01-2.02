@@ -115,7 +115,7 @@ public class GameModeScreen {
                         System.out.println("Génération d'une nouvelle grille aléatoire");
                         grid[0] = new Grille(11, 11, true);
                         if (mazeTypeCombo.getValue().equals("Labyrinthe imparfait")) {
-                            grid[0].genererLabyrintheImparfait(0.25);
+                            grid[0].genererLabyrintheImparfait(0.40);
                         } else {
                             grid[0].genererLabyrinthe();
                         }
